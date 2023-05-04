@@ -28,7 +28,7 @@ func Init() error {
 	return nil
 }
 
-func attributesToSDKAttributes(attributes MessageAttributes) SDKMessageAttributes {
+func toSDKAttributes(attributes MessageAttributes) SDKMessageAttributes {
 	ma := SDKMessageAttributes{}
 
 	for key, value := range attributes {
@@ -40,7 +40,7 @@ func attributesToSDKAttributes(attributes MessageAttributes) SDKMessageAttribute
 	return ma
 }
 
-func sdkAttributesToAttributes(sdkAttributes SDKMessageAttributes) MessageAttributes {
+func toAttributes(sdkAttributes SDKMessageAttributes) MessageAttributes {
 	ma := MessageAttributes{}
 
 	for key, value := range sdkAttributes {
@@ -68,7 +68,7 @@ func Get(queue string) (*Message, error) {
 	} else {
 		message := res.Messages[0]
 		return &Message{
-			Attributes: sdkAttributesToAttributes(message.MessageAttributes),
+			Attributes: toAttributes(message.MessageAttributes),
 			Body: message.Body,
 			ReceiptHandle: message.ReceiptHandle,
 		}, nil
@@ -78,10 +78,19 @@ func Get(queue string) (*Message, error) {
 func Put(queue string, body string, attributes MessageAttributes) error {
 	params := sqs.SendMessageInput{
 		DelaySeconds: 0,
-		MessageAttributes: attributesToSDKAttributes(attributes),
+		MessageAttributes: toSDKAttributes(attributes),
 		MessageBody: aws.String(body),
 		QueueUrl:    aws.String(queue),
 	}
 	_, err := client.SendMessage(context.TODO(), &params)
+	return err
+}
+
+func Delete(queue string, receiptHandle string) error {
+	params := sqs.DeleteMessageInput{
+		QueueUrl:      &queue,
+		ReceiptHandle: &receiptHandle,
+	}
+	_, err := client.DeleteMessage(context.TODO(), &params)
 	return err
 }
