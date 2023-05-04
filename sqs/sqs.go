@@ -57,7 +57,7 @@ func Get(queue string) (*Message, error) {
 		QueueUrl:            aws.String(queue),
 		MaxNumberOfMessages: 1,
 		VisibilityTimeout:   int32(20),
-		WaitTimeSeconds:	 int32(30),
+		WaitTimeSeconds:	 int32(20),
 	}
 	res, err := client.ReceiveMessage(context.TODO(), &params)
 	if err != nil {
