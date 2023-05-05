@@ -9,6 +9,7 @@ import (
 )
 
 type Message struct {
+	Queue string
 	Attributes MessageAttributes
 	Body *string
 	ReceiptHandle *string
@@ -68,6 +69,7 @@ func Get(queue string) (*Message, error) {
 	} else {
 		message := res.Messages[0]
 		return &Message{
+			Queue: queue,
 			Attributes: toAttributes(message.MessageAttributes),
 			Body: message.Body,
 			ReceiptHandle: message.ReceiptHandle,
@@ -86,10 +88,10 @@ func Put(queue string, body string, attributes MessageAttributes) error {
 	return err
 }
 
-func Delete(queue string, receiptHandle string) error {
+func (message *Message) Delete() error {
 	params := sqs.DeleteMessageInput{
-		QueueUrl:      &queue,
-		ReceiptHandle: &receiptHandle,
+		QueueUrl:      &message.Queue,
+		ReceiptHandle: message.ReceiptHandle,
 	}
 	_, err := client.DeleteMessage(context.TODO(), &params)
 	return err

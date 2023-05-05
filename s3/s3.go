@@ -43,8 +43,5 @@ func Put(bucket string, key string, body io.Reader) error {
 		Body:	body,
 	}
 	_, err := client.PutObject(context.TODO(), &params)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
