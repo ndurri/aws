@@ -2,6 +2,7 @@ package sqs
 
 import (
 	"context"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -9,9 +10,9 @@ import (
 )
 
 type Message struct {
-	Queue string
-	Attributes MessageAttributes
-	Body *string
+	Queue         string
+	Attributes    MessageAttributes
+	Body          *string
 	ReceiptHandle *string
 }
 
@@ -21,6 +22,9 @@ type SDKMessageAttributes map[string]types.MessageAttributeValue
 var client *sqs.Client
 
 func Init() error {
+	if client != nil {
+		return nil
+	}
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return err
@@ -47,10 +51,11 @@ func toAttributes(sdkAttributes SDKMessageAttributes) MessageAttributes {
 	for key, value := range sdkAttributes {
 		ma[key] = *value.StringValue
 	}
-	return ma	
+	return ma
 }
 
 func Get(queue string) (*Message, error) {
+	Init()
 	params := sqs.ReceiveMessageInput{
 		MessageAttributeNames: []string{
 			string(types.QueueAttributeNameAll),
@@ -58,7 +63,7 @@ func Get(queue string) (*Message, error) {
 		QueueUrl:            aws.String(queue),
 		MaxNumberOfMessages: 1,
 		VisibilityTimeout:   int32(20),
-		WaitTimeSeconds:	 int32(20),
+		WaitTimeSeconds:     int32(20),
 	}
 	res, err := client.ReceiveMessage(context.TODO(), &params)
 	if err != nil {
@@ -69,20 +74,21 @@ func Get(queue string) (*Message, error) {
 	} else {
 		message := res.Messages[0]
 		return &Message{
-			Queue: queue,
-			Attributes: toAttributes(message.MessageAttributes),
-			Body: message.Body,
+			Queue:         queue,
+			Attributes:    toAttributes(message.MessageAttributes),
+			Body:          message.Body,
 			ReceiptHandle: message.ReceiptHandle,
 		}, nil
 	}
 }
 
 func Put(queue string, body string, attributes MessageAttributes) error {
+	Init()
 	params := sqs.SendMessageInput{
-		DelaySeconds: 0,
+		DelaySeconds:      0,
 		MessageAttributes: toSDKAttributes(attributes),
-		MessageBody: aws.String(body),
-		QueueUrl:    aws.String(queue),
+		MessageBody:       aws.String(body),
+		QueueUrl:          aws.String(queue),
 	}
 	_, err := client.SendMessage(context.TODO(), &params)
 	return err
