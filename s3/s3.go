@@ -2,21 +2,22 @@ package s3
 
 import (
 	"context"
+	"io"
+	"log"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"io"
 )
 
 var client *s3.Client
 
-func Init() error {
+func init() {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	client = s3.NewFromConfig(cfg)
-	return nil
 }
 
 func Get(bucket string, key string) ([]byte, error) {
@@ -40,7 +41,7 @@ func Put(bucket string, key string, body io.Reader) error {
 	params := s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-		Body:	body,
+		Body:   body,
 	}
 	_, err := client.PutObject(context.TODO(), &params)
 	return err

@@ -2,6 +2,7 @@ package sqs
 
 import (
 	"context"
+	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -11,6 +12,7 @@ import (
 
 type Message struct {
 	Queue         string
+	MessageId     *string
 	Attributes    MessageAttributes
 	Body          *string
 	ReceiptHandle *string
@@ -21,16 +23,12 @@ type SDKMessageAttributes map[string]types.MessageAttributeValue
 
 var client *sqs.Client
 
-func Init() error {
-	if client != nil {
-		return nil
-	}
+func init() {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	client = sqs.NewFromConfig(cfg)
-	return nil
 }
 
 func toSDKAttributes(attributes MessageAttributes) SDKMessageAttributes {
@@ -55,7 +53,6 @@ func toAttributes(sdkAttributes SDKMessageAttributes) MessageAttributes {
 }
 
 func Get(queue string) (*Message, error) {
-	Init()
 	params := sqs.ReceiveMessageInput{
 		MessageAttributeNames: []string{
 			string(types.QueueAttributeNameAll),
@@ -75,6 +72,7 @@ func Get(queue string) (*Message, error) {
 		message := res.Messages[0]
 		return &Message{
 			Queue:         queue,
+			MessageId:     message.MessageId,
 			Attributes:    toAttributes(message.MessageAttributes),
 			Body:          message.Body,
 			ReceiptHandle: message.ReceiptHandle,
@@ -82,16 +80,18 @@ func Get(queue string) (*Message, error) {
 	}
 }
 
-func Put(queue string, body string, attributes MessageAttributes) error {
-	Init()
+func Put(queue string, body string, attributes MessageAttributes) (*string, error) {
 	params := sqs.SendMessageInput{
 		DelaySeconds:      0,
 		MessageAttributes: toSDKAttributes(attributes),
 		MessageBody:       aws.String(body),
 		QueueUrl:          aws.String(queue),
 	}
-	_, err := client.SendMessage(context.TODO(), &params)
-	return err
+	res, err := client.SendMessage(context.TODO(), &params)
+	if err != nil {
+		return nil, err
+	}
+	return res.MessageId, nil
 }
 
 func (message *Message) Delete() error {
